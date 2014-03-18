@@ -1,10 +1,13 @@
 package com.ranga;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Repository;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 /**
  * StudentDAOImpl.java
@@ -13,34 +16,51 @@ import org.springframework.stereotype.Repository;
  */
 
 public class StudentDAOImpl implements StudentDAO {
-	private JdbcTemplate jdbcTemplate;
+	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+	
 	@Autowired
-	public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {		
-		this.jdbcTemplate = jdbcTemplate;
+	public void setNamedParameterJdbcTemplate(
+			NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+		this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
 	}
+	
 	@Override
 	public void createStudent(Student student) {
-		this.jdbcTemplate.update("insert into Student(id, name, age) values(?,?,?)", student.getId(), student.getName(), student.getAge());		
+		Map namedParameters = new HashMap();
+		namedParameters.put("id", student.getId());
+		namedParameters.put("name", student.getName());
+		namedParameters.put("age",student.getAge());
+		this.namedParameterJdbcTemplate.update("insert into Student(id, name, age) values(:id, :name,:age)", namedParameters);		
 	}
+	
 	@Override
-	public Student getStudent(long id) {		
-		return this.jdbcTemplate.queryForObject("select * from Student where id = ?",new Object[]{id}, new StudentRowMapper());
+	public Student getStudent(long id) {
+		SqlParameterSource namedParameters = new MapSqlParameterSource("id",id);
+		return this.namedParameterJdbcTemplate.queryForObject("select * from Student where id = :id",namedParameters, new StudentRowMapper());
 	}
 	@Override
 	public void updateStudent(Student student) {
-		this.jdbcTemplate.update("update Student set name = ?, age=? ", new Object[]{student.getName(), student.getAge()});	
+		Map namedParameters = new HashMap();
+		namedParameters.put("id", student.getId());
+		namedParameters.put("name", student.getName());
+		namedParameters.put("age",student.getAge());
+		this.namedParameterJdbcTemplate.update("update Student set name = :name, age= :age ", namedParameters);		
 	}	
 	@Override
 	public void deleteStudent(Student student) {
-		this.jdbcTemplate.update("delete from Student where id = ? ", student.getId());		
+		SqlParameterSource namedParameters = new MapSqlParameterSource("id",student.getId());
+		this.namedParameterJdbcTemplate.update("delete from Student where id = :id", namedParameters);		
 	}
+	
 	@Override
 	public List<Student> getAllStudents() {
-		return this.jdbcTemplate.query( "select * from Student", new StudentRowMapper());			
+		return this.namedParameterJdbcTemplate.query( "select * from Student", new StudentRowMapper());			
 	}	
 	
 	@Override
 	public int totalStudents() {
-		return this.jdbcTemplate.queryForInt("select count(*) from Student");
+		String sql = "select count(*) from Student";
+		SqlParameterSource namedParameters = new MapSqlParameterSource();
+	    return this.namedParameterJdbcTemplate.queryForInt(sql, namedParameters);		
 	}
 }
